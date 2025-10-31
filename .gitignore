@@ -52,3 +52,16 @@ compile_commands.json
 *creator.user*
 
 *_qmlcache.qrc
+
+# CMake build directories
+build/
+Build/
+cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+
+# Executables
+SerialChat
+SerialChat.exe
