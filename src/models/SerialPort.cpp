@@ -54,7 +54,12 @@ bool SerialPort::writeData(const QByteArray &data)
     }
 
     qint64 bytesWritten = m_serialPort->write(data);
-    return bytesWritten == data.size();
+    if (bytesWritten == -1) {
+        return false;
+    }
+    
+    // Ensure all data is flushed
+    return m_serialPort->waitForBytesWritten(1000);
 }
 
 QByteArray SerialPort::readData()

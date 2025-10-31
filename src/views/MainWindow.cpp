@@ -4,6 +4,7 @@
 #include <QGroupBox>
 #include <QSpacerItem>
 #include <QScrollBar>
+#include <QTimer>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -152,6 +153,15 @@ void MainWindow::onConnectButtonClicked()
 {
     if (m_connectButton->isChecked()) {
         QString portName = m_portComboBox->currentText();
+        
+        // Check if there are valid ports available
+        if (portName == "No ports available" || portName.isEmpty()) {
+            m_connectButton->setChecked(false);
+            m_statusLabel->setText("No valid port selected");
+            m_statusLabel->setStyleSheet("padding: 10px; background-color: #f0c6c6; border-radius: 5px;");
+            return;
+        }
+        
         qint32 baudRate = m_baudRateComboBox->currentText().toInt();
 
         if (m_serialPort->openPort(portName, baudRate)) {
@@ -223,7 +233,12 @@ void MainWindow::addMessageToChat(Message *message)
 
     m_chatLayout->addLayout(bubbleLayout);
 
-    // Scroll to bottom
+    // Scroll to bottom after layout update
+    QTimer::singleShot(0, this, &MainWindow::scrollToBottom);
+}
+
+void MainWindow::scrollToBottom()
+{
     QScrollBar *scrollBar = m_chatScrollArea->verticalScrollBar();
     scrollBar->setValue(scrollBar->maximum());
 }

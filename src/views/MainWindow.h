@@ -29,6 +29,7 @@ private slots:
     void onDataReceived(const QByteArray &data);
     void onMessageAdded(Message *message);
     void refreshPortList();
+    void scrollToBottom();
 
 private:
     void setupUI();

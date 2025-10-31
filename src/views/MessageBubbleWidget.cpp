@@ -72,5 +72,8 @@ void MessageBubbleWidget::updateUI()
             m_contentLabel->setAlignment(Qt::AlignLeft);
             m_timestampLabel->setAlignment(Qt::AlignLeft);
         }
+    } else {
+        m_contentLabel->setText("");
+        m_timestampLabel->setText("");
     }
 }
