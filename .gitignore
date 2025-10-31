@@ -38,6 +38,14 @@ target_wrapper.*
 # QtCreator
 *.autosave
 
+# Qt MOC files
+moc_*.cpp
+moc_*.h
+moc_predefs.h
+
+# Object files
+*.o
+
 # QtCreator Qml
 *.qmlproject.user
 *.qmlproject.user.*
@@ -52,3 +60,15 @@ compile_commands.json
 *creator.user*
 
 *_qmlcache.qrc
+
+# Build directories
+build/
+build-*/
+
+# Binaries
+SerialChat
+SerialChat.exe
+
+# Screenshots and temporary files
+screenshot.png
+*.xwd
