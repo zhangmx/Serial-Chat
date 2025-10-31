@@ -39,6 +39,7 @@ Q_SIGNALS:
     void contentChanged();
     void timestampChanged();
     void directionChanged();
+    void sourcePortChanged();
 
 private:
     QByteArray m_content;

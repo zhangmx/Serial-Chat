@@ -43,5 +43,8 @@ void Message::setDirection(Direction direction)
 
 void Message::setSourcePort(SerialPort *port)
 {
-    m_sourcePort = port;
+    if (m_sourcePort != port) {
+        m_sourcePort = port;
+        emit sourcePortChanged();
+    }
 }
