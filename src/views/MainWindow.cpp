@@ -3,6 +3,7 @@
 #include <QSplitter>
 #include <QGroupBox>
 #include <QSpacerItem>
+#include <QScrollBar>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
