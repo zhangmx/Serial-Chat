@@ -1,0 +1,12 @@
+<RCC>
+    <qresource prefix="/">
+        <file>icons/online.png</file>
+        <file>icons/offline.png</file>
+        <file>icons/error.png</file>
+        <file>icons/group.png</file>
+        <file>icons/send.png</file>
+        <file>icons/settings.png</file>
+        <file>icons/refresh.png</file>
+        <file>icons/add.png</file>
+    </qresource>
+</RCC>
