@@ -243,10 +243,12 @@ void FriendListWidget::setupHeader()
     m_buttonLayout->setSpacing(10);
     
     m_addButton = new QPushButton(tr("+ Add Port"), m_buttonWidget);
+    m_addButton->setIcon(QIcon(":/icons/add.png"));
     m_addButton->setStyleSheet("QPushButton { padding: 8px 15px; border: 1px solid #07C160; border-radius: 5px; background-color: white; color: #07C160; } QPushButton:hover { background-color: #E8F5E9; }");
     connect(m_addButton, &QPushButton::clicked, this, &FriendListWidget::onAddButtonClicked);
     
     m_groupButton = new QPushButton(tr("+ Group"), m_buttonWidget);
+    m_groupButton->setIcon(QIcon(":/icons/group.png"));
     m_groupButton->setStyleSheet("QPushButton { padding: 8px 15px; border: 1px solid #1976D2; border-radius: 5px; background-color: white; color: #1976D2; } QPushButton:hover { background-color: #E3F2FD; }");
     connect(m_groupButton, &QPushButton::clicked, this, &FriendListWidget::onGroupButtonClicked);
     

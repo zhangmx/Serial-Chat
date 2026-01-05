@@ -100,7 +100,8 @@ void SerialPortSettingsDialog::setupUi()
     m_portCombo = new QComboBox(portWidget);
     m_portCombo->setMinimumWidth(180);
     
-    m_refreshButton = new QPushButton(tr("↻"), portWidget);
+    m_refreshButton = new QPushButton(tr("Refresh"), portWidget);
+    m_refreshButton->setIcon(QIcon(":/icons/refresh.png"));
     m_refreshButton->setFixedWidth(30);
     m_refreshButton->setToolTip(tr("Refresh port list"));
     connect(m_refreshButton, &QPushButton::clicked, this, &SerialPortSettingsDialog::onRefreshClicked);

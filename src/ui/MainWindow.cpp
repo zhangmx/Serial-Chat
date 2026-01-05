@@ -217,7 +217,7 @@ void MainWindow::onAbout()
            "<p>Version 1.0.0</p>"
            "<p>A serial port communication tool with a chat-like interface.</p>"
            "<p>Serial ports are treated as 'users' that can send and receive messages.</p>"
-           "<p>Copyright © 2024</p>"));
+           "<p>Copyright © 2026</p>"));
 }
 
 void MainWindow::updateStatusBar()
