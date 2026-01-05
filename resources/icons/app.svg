@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4A90D9;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1976D2;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="portGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#07C160;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#05A550;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="240" fill="url(#bgGrad)" filter="url(#shadow)"/>
+  
+  <!-- Serial port connector (DB9 style) -->
+  <rect x="140" y="180" width="232" height="152" rx="20" ry="20" fill="#fff" opacity="0.95"/>
+  <rect x="155" y="195" width="202" height="122" rx="12" ry="12" fill="#2C3E50"/>
+  
+  <!-- Pin holes (arranged in DB9 pattern) -->
+  <!-- Top row - 5 pins -->
+  <circle cx="200" cy="235" r="12" fill="url(#portGrad)"/>
+  <circle cx="245" cy="235" r="12" fill="url(#portGrad)"/>
+  <circle cx="290" cy="235" r="12" fill="url(#portGrad)"/>
+  <circle cx="335" cy="235" r="12" fill="#FFB74D"/>
+  <circle cx="380" cy="235" r="12" fill="#FFB74D"/>
+  
+  <!-- Bottom row - 4 pins -->
+  <circle cx="222" cy="280" r="12" fill="url(#portGrad)"/>
+  <circle cx="267" cy="280" r="12" fill="url(#portGrad)"/>
+  <circle cx="312" cy="280" r="12" fill="#FFB74D"/>
+  <circle cx="357" cy="280" r="12" fill="url(#portGrad)"/>
+  
+  <!-- Chat bubbles -->
+  <!-- Left bubble -->
+  <path d="M80 340 L80 390 Q80 410 100 410 L180 410 L200 440 L200 410 L220 410 Q240 410 240 390 L240 340 Q240 320 220 320 L100 320 Q80 320 80 340 Z" 
+        fill="#fff" opacity="0.9"/>
+  <rect x="95" y="345" width="80" height="8" rx="4" fill="#1976D2"/>
+  <rect x="95" y="360" width="120" height="8" rx="4" fill="#1976D2" opacity="0.6"/>
+  <rect x="95" y="375" width="60" height="8" rx="4" fill="#1976D2" opacity="0.4"/>
+  
+  <!-- Right bubble -->
+  <path d="M272 340 L272 390 Q272 410 292 410 L312 410 L312 440 L332 410 L412 410 Q432 410 432 390 L432 340 Q432 320 412 320 L292 320 Q272 320 272 340 Z" 
+        fill="url(#portGrad)" opacity="0.95"/>
+  <rect x="290" y="345" width="120" height="8" rx="4" fill="#fff"/>
+  <rect x="290" y="360" width="80" height="8" rx="4" fill="#fff" opacity="0.8"/>
+  <rect x="290" y="375" width="100" height="8" rx="4" fill="#fff" opacity="0.6"/>
+  
+  <!-- Connection lines / data flow indicators -->
+  <circle cx="256" cy="160" r="18" fill="url(#portGrad)"/>
+  <path d="M256 142 L256 120" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+  <path d="M248 128 L256 120 L264 128" stroke="#fff" stroke-width="4" stroke-linecap="round" fill="none"/>
+  
+  <circle cx="256" cy="352" r="18" fill="url(#portGrad)"/>
+  <path d="M256 362 L256 384" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+  <path d="M248 376 L256 384 L264 376" stroke="#fff" stroke-width="4" stroke-linecap="round" fill="none"/>
+</svg>

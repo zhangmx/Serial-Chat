@@ -1,6 +1,7 @@
 #include "FriendListWidget.h"
 #include "SerialPortManager.h"
 #include <QScrollBar>
+#include <QMouseEvent>
 
 FriendListWidget::FriendListWidget(QWidget* parent)
     : QWidget(parent)
@@ -11,6 +12,21 @@ FriendListWidget::FriendListWidget(QWidget* parent)
 
 FriendListWidget::~FriendListWidget()
 {
+}
+
+bool FriendListWidget::eventFilter(QObject* watched, QEvent* event)
+{
+    if (event->type() == QEvent::MouseButtonPress) {
+        QWidget* widget = qobject_cast<QWidget*>(watched);
+        if (widget) {
+            QString groupId = widget->property("groupId").toString();
+            if (!groupId.isEmpty()) {
+                selectGroup(groupId);
+                return true;
+            }
+        }
+    }
+    return QWidget::eventFilter(watched, event);
 }
 
 void FriendListWidget::setPortManager(SerialPortManager* manager)
@@ -184,11 +200,24 @@ void FriendListWidget::onSearchTextChanged(const QString& text)
 {
     QString searchText = text.toLower();
     
+    // Filter friends
     for (auto it = m_friendItems.begin(); it != m_friendItems.end(); ++it) {
         FriendListItem* item = it.value();
         bool visible = searchText.isEmpty() || 
                        item->portName().toLower().contains(searchText) ||
                        item->info().remark().toLower().contains(searchText);
+        item->setVisible(visible);
+    }
+    
+    // Filter groups
+    for (auto it = m_groupItems.begin(); it != m_groupItems.end(); ++it) {
+        QWidget* item = it.value();
+        QString groupId = item->property("groupId").toString();
+        QLabel* nameLabel = item->findChild<QLabel*>();
+        bool visible = searchText.isEmpty();
+        if (nameLabel) {
+            visible = visible || nameLabel->text().toLower().contains(searchText);
+        }
         item->setVisible(visible);
     }
 }
@@ -356,13 +385,16 @@ QWidget* FriendListWidget::createGroupItem(const ChatGroupInfo& group)
     QWidget* item = new QWidget(this);
     item->setFixedHeight(60);
     item->setCursor(Qt::PointingHandCursor);
+    item->setProperty("groupId", group.id());
     
     QHBoxLayout* layout = new QHBoxLayout(item);
     layout->setContentsMargins(15, 10, 15, 10);
     
-    QWidget* iconWidget = new QWidget(item);
-    iconWidget->setFixedSize(40, 40);
-    iconWidget->setStyleSheet("background-color: #1976D2; border-radius: 8px;");
+    QLabel* iconLabel = new QLabel(item);
+    iconLabel->setFixedSize(40, 40);
+    iconLabel->setPixmap(QPixmap(":/icons/group.png").scaled(32, 32, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    iconLabel->setAlignment(Qt::AlignCenter);
+    iconLabel->setStyleSheet("background-color: #1976D2; border-radius: 8px;");
     
     QVBoxLayout* infoLayout = new QVBoxLayout();
     
@@ -377,8 +409,11 @@ QWidget* FriendListWidget::createGroupItem(const ChatGroupInfo& group)
     infoLayout->addWidget(nameLabel);
     infoLayout->addWidget(membersLabel);
     
-    layout->addWidget(iconWidget);
+    layout->addWidget(iconLabel);
     layout->addLayout(infoLayout, 1);
+    
+    // Make clickable
+    item->installEventFilter(this);
     
     return item;
 }

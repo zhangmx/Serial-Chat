@@ -1,0 +1,177 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "CMake: Configure",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-B",
+                "${workspaceFolder}/build",
+                "-DCMAKE_BUILD_TYPE=Debug",
+                "-DBUILD_TESTS=ON"
+            ],
+            "group": "build",
+            "problemMatcher": [],
+            "detail": "Configure CMake build directory"
+        },
+        {
+            "label": "CMake: Configure Release",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-B",
+                "${workspaceFolder}/build",
+                "-DCMAKE_BUILD_TYPE=Release",
+                "-DBUILD_TESTS=OFF"
+            ],
+            "group": "build",
+            "problemMatcher": [],
+            "detail": "Configure CMake for Release build"
+        },
+        {
+            "label": "CMake: Build",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "${workspaceFolder}/build",
+                "--config",
+                "Debug"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [
+                "$msCompile",
+                "$gcc"
+            ],
+            "detail": "Build the project in Debug mode",
+            "dependsOn": []
+        },
+        {
+            "label": "CMake: Build Release",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "${workspaceFolder}/build",
+                "--config",
+                "Release"
+            ],
+            "group": "build",
+            "problemMatcher": [
+                "$msCompile",
+                "$gcc"
+            ],
+            "detail": "Build the project in Release mode"
+        },
+        {
+            "label": "CMake: Clean",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "${workspaceFolder}/build",
+                "--target",
+                "clean"
+            ],
+            "group": "build",
+            "problemMatcher": [],
+            "detail": "Clean build artifacts"
+        },
+        {
+            "label": "CMake: Rebuild",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "${workspaceFolder}/build",
+                "--clean-first",
+                "--config",
+                "Debug"
+            ],
+            "group": "build",
+            "problemMatcher": [
+                "$msCompile",
+                "$gcc"
+            ],
+            "detail": "Clean and rebuild the project"
+        },
+        {
+            "label": "Run Tests",
+            "type": "shell",
+            "command": "ctest",
+            "args": [
+                "--test-dir",
+                "${workspaceFolder}/build",
+                "-C",
+                "Debug",
+                "--output-on-failure"
+            ],
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "problemMatcher": [],
+            "detail": "Run unit tests with CTest"
+        },
+        {
+            "label": "Run Tests (Verbose)",
+            "type": "shell",
+            "command": "ctest",
+            "args": [
+                "--test-dir",
+                "${workspaceFolder}/build",
+                "-C",
+                "Debug",
+                "-V"
+            ],
+            "group": "test",
+            "problemMatcher": [],
+            "detail": "Run unit tests with verbose output"
+        },
+        {
+            "label": "Run Application",
+            "type": "shell",
+            "command": "${workspaceFolder}/build/Debug/SerialChat.exe",
+            "windows": {
+                "command": "${workspaceFolder}/build/Debug/SerialChat.exe"
+            },
+            "linux": {
+                "command": "${workspaceFolder}/build/SerialChat"
+            },
+            "osx": {
+                "command": "${workspaceFolder}/build/SerialChat.app/Contents/MacOS/SerialChat"
+            },
+            "group": "none",
+            "problemMatcher": [],
+            "detail": "Launch the Serial Chat application"
+        },
+        {
+            "label": "Full Build (Configure + Build)",
+            "dependsOn": [
+                "CMake: Configure",
+                "CMake: Build"
+            ],
+            "dependsOrder": "sequence",
+            "group": "build",
+            "problemMatcher": [],
+            "detail": "Configure and build the project"
+        },
+        {
+            "label": "Deploy Qt (Windows)",
+            "type": "shell",
+            "command": "windeployqt",
+            "args": [
+                "--debug",
+                "${workspaceFolder}/build/Debug/SerialChat.exe"
+            ],
+            "group": "none",
+            "problemMatcher": [],
+            "detail": "Deploy Qt dependencies for Windows",
+            "windows": {}
+        }
+    ]
+}

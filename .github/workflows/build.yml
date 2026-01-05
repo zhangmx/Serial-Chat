@@ -1,0 +1,217 @@
+# Serial Chat - Cross-Platform Build and Release
+# This workflow builds the application for Windows, macOS, and Linux
+# 
+# NOTE: This workflow is disabled by default (workflow_dispatch only).
+# To enable automatic builds on push/PR, uncomment the triggers below.
+#
+# See docs/ci-cd-setup.md for setup instructions.
+
+name: Build and Release
+
+on:
+  # Manual trigger only - uncomment below to enable automatic builds
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.0)'
+        required: false
+        default: ''
+  
+  # Uncomment to enable automatic builds on tags
+  # push:
+  #   tags:
+  #     - 'v*'
+  
+  # Uncomment to enable build testing on pull requests
+  # pull_request:
+  #   branches: [ main, develop ]
+
+env:
+  QT_VERSION: '5.15.2'
+  BUILD_TYPE: Release
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: ${{ env.QT_VERSION }}
+        host: 'windows'
+        target: 'desktop'
+        arch: 'win64_msvc2019_64'
+        modules: 'qtserialport'
+        
+    - name: Configure CMake
+      run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DBUILD_TESTS=OFF
+      
+    - name: Build
+      run: cmake --build build --config ${{ env.BUILD_TYPE }}
+      
+    - name: Deploy Qt dependencies
+      run: |
+        mkdir deploy
+        copy build\${{ env.BUILD_TYPE }}\SerialChat.exe deploy\
+        windeployqt --release --no-translations deploy\SerialChat.exe
+        
+    - name: Create installer (optional)
+      run: |
+        # Add NSIS or Inno Setup script here if needed
+        echo "Installer creation placeholder"
+        
+    - name: Upload Windows artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: SerialChat-Windows-x64
+        path: deploy/
+
+  build-macos:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: ${{ env.QT_VERSION }}
+        host: 'mac'
+        target: 'desktop'
+        modules: 'qtserialport'
+        
+    - name: Configure CMake
+      run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DBUILD_TESTS=OFF
+      
+    - name: Build
+      run: cmake --build build --config ${{ env.BUILD_TYPE }}
+      
+    - name: Deploy Qt dependencies
+      run: |
+        macdeployqt build/SerialChat.app -dmg
+        
+    - name: Upload macOS artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: SerialChat-macOS
+        path: build/SerialChat.dmg
+
+  build-linux:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libgl1-mesa-dev libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0
+        
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: ${{ env.QT_VERSION }}
+        host: 'linux'
+        target: 'desktop'
+        modules: 'qtserialport'
+        
+    - name: Configure CMake
+      run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DBUILD_TESTS=OFF
+      
+    - name: Build
+      run: cmake --build build --config ${{ env.BUILD_TYPE }}
+      
+    - name: Create AppImage
+      run: |
+        # Download linuxdeployqt
+        wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
+        chmod a+x linuxdeployqt-continuous-x86_64.AppImage
+        
+        # Create AppDir structure
+        mkdir -p AppDir/usr/bin
+        mkdir -p AppDir/usr/share/applications
+        mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+        
+        cp build/SerialChat AppDir/usr/bin/
+        
+        # Create desktop file
+        cat > AppDir/usr/share/applications/serialchat.desktop << EOF
+        [Desktop Entry]
+        Type=Application
+        Name=Serial Chat
+        Exec=SerialChat
+        Icon=serialchat
+        Categories=Development;Utility;
+        EOF
+        
+        # Copy icon (convert SVG to PNG if needed)
+        cp resources/icons/app.svg AppDir/usr/share/icons/hicolor/256x256/apps/serialchat.svg
+        
+        # Create AppImage
+        ./linuxdeployqt-continuous-x86_64.AppImage AppDir/usr/share/applications/serialchat.desktop -appimage -no-translations
+        
+    - name: Upload Linux artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: SerialChat-Linux-x86_64
+        path: SerialChat*.AppImage
+
+  create-release:
+    needs: [build-windows, build-macos, build-linux]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.version != ''
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts/
+        
+    - name: Determine version
+      id: version
+      run: |
+        if [ -n "${{ github.event.inputs.version }}" ]; then
+          echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+        else
+          echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: Create zip archives
+      run: |
+        cd artifacts
+        zip -r SerialChat-${{ steps.version.outputs.version }}-Windows-x64.zip SerialChat-Windows-x64/
+        zip -r SerialChat-${{ steps.version.outputs.version }}-macOS.zip SerialChat-macOS/
+        mv SerialChat-Linux-x86_64/*.AppImage SerialChat-${{ steps.version.outputs.version }}-Linux-x86_64.AppImage
+        
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ steps.version.outputs.version }}
+        name: Serial Chat v${{ steps.version.outputs.version }}
+        draft: true
+        prerelease: false
+        files: |
+          artifacts/SerialChat-${{ steps.version.outputs.version }}-Windows-x64.zip
+          artifacts/SerialChat-${{ steps.version.outputs.version }}-macOS.zip
+          artifacts/SerialChat-${{ steps.version.outputs.version }}-Linux-x86_64.AppImage
+        body: |
+          ## Serial Chat v${{ steps.version.outputs.version }}
+          
+          ### Downloads
+          - **Windows**: SerialChat-${{ steps.version.outputs.version }}-Windows-x64.zip
+          - **macOS**: SerialChat-${{ steps.version.outputs.version }}-macOS.zip  
+          - **Linux**: SerialChat-${{ steps.version.outputs.version }}-Linux-x86_64.AppImage
+          
+          ### Changes
+          See [CHANGELOG.md](CHANGELOG.md) for details.
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

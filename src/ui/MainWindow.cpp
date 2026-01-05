@@ -6,6 +6,9 @@
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QApplication>
+#include <QJsonDocument>
+#include <QJsonArray>
+#include <QDateTime>
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
@@ -16,12 +19,15 @@ MainWindow::MainWindow(QWidget* parent)
     setupUi();
     setupMenuBar();
     setupStatusBar();
+    setupConsoleDock();
     setupConnections();
     loadData();
     
     // Start auto-refresh
     m_portManager->setAutoRefresh(true);
     m_statusTimer->start(1000);
+    
+    logMessage(tr("Serial Chat started"));
 }
 
 MainWindow::~MainWindow()
@@ -61,7 +67,12 @@ void MainWindow::onPortSelected(const QString& portName)
 
 void MainWindow::onGroupSelected(const QString& groupId)
 {
-    m_chatWidget->setGroupId(groupId);
+    ChatGroup* group = getChatGroup(groupId);
+    if (group) {
+        m_chatWidget->setCurrentGroup(group);
+    } else {
+        m_chatWidget->setGroupId(groupId);
+    }
     
     // Load group message history
     QList<Message> messages = m_messageManager->getGroupMessages(groupId);
@@ -206,18 +217,65 @@ void MainWindow::onExportHistory()
         return;
     }
     
-    // TODO: Implement export
-    QMessageBox::information(this, tr("Export"), tr("Export functionality coming soon"));
+    // Export all messages to JSON
+    QJsonObject root;
+    root["exportTime"] = QDateTime::currentDateTime().toString(Qt::ISODate);
+    root["version"] = APP_VERSION;
+    
+    // Export port messages
+    QJsonObject portMessages;
+    QList<SerialPortInfo> friends = m_portManager->friendList();
+    for (const SerialPortInfo& info : friends) {
+        QList<Message> messages = m_messageManager->getMessages(info.portName());
+        QJsonArray msgArray;
+        for (const Message& msg : messages) {
+            msgArray.append(msg.toJson());
+        }
+        if (!msgArray.isEmpty()) {
+            portMessages[info.portName()] = msgArray;
+        }
+    }
+    root["portMessages"] = portMessages;
+    
+    // Export group messages
+    QJsonObject groupMessages;
+    for (auto it = m_chatGroups.begin(); it != m_chatGroups.end(); ++it) {
+        QList<Message> messages = m_messageManager->getGroupMessages(it.key());
+        QJsonArray msgArray;
+        for (const Message& msg : messages) {
+            msgArray.append(msg.toJson());
+        }
+        if (!msgArray.isEmpty()) {
+            QJsonObject groupObj;
+            groupObj["name"] = it.value()->name();
+            groupObj["messages"] = msgArray;
+            groupMessages[it.key()] = groupObj;
+        }
+    }
+    root["groupMessages"] = groupMessages;
+    
+    // Write to file
+    QFile file(fileName);
+    if (file.open(QIODevice::WriteOnly)) {
+        QJsonDocument doc(root);
+        file.write(doc.toJson(QJsonDocument::Indented));
+        file.close();
+        logMessage(tr("History exported to %1").arg(fileName));
+        QMessageBox::information(this, tr("Export"), tr("History exported successfully"));
+    } else {
+        logError(tr("Failed to export history: %1").arg(file.errorString()));
+        QMessageBox::warning(this, tr("Export"), tr("Failed to export history: %1").arg(file.errorString()));
+    }
 }
 
 void MainWindow::onAbout()
 {
     QMessageBox::about(this, tr("About Serial Chat"),
         tr("<h3>Serial Chat</h3>"
-           "<p>Version 1.0.0</p>"
+           "<p>Version %1</p>"
            "<p>A serial port communication tool with a chat-like interface.</p>"
            "<p>Serial ports are treated as 'users' that can send and receive messages.</p>"
-           "<p>Copyright © 2026</p>"));
+           "<p>Copyright © 2026</p>").arg(APP_VERSION));
 }
 
 void MainWindow::updateStatusBar()
@@ -264,6 +322,7 @@ void MainWindow::setupMenuBar()
     m_fileMenu = menuBar()->addMenu(tr("&File"));
     
     m_refreshAction = m_fileMenu->addAction(tr("&Refresh Ports"));
+    m_refreshAction->setIcon(QIcon(":/icons/refresh.png"));
     m_refreshAction->setShortcut(QKeySequence::Refresh);
     connect(m_refreshAction, &QAction::triggered, this, &MainWindow::onRefreshPorts);
     
@@ -282,10 +341,15 @@ void MainWindow::setupMenuBar()
     m_portMenu = menuBar()->addMenu(tr("&Port"));
     
     m_addPortAction = m_portMenu->addAction(tr("&Add Port..."));
+    m_addPortAction->setIcon(QIcon(":/icons/add.png"));
     m_addPortAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_N));
     connect(m_addPortAction, &QAction::triggered, this, &MainWindow::onAddPortRequested);
     
     m_portMenu->addSeparator();
+    
+    m_connectAllAction = m_portMenu->addAction(tr("&Connect All"));
+    m_connectAllAction->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_C));
+    connect(m_connectAllAction, &QAction::triggered, this, &MainWindow::onConnectAll);
     
     m_disconnectAllAction = m_portMenu->addAction(tr("&Disconnect All"));
     connect(m_disconnectAllAction, &QAction::triggered, this, &MainWindow::onDisconnectAll);
@@ -295,6 +359,14 @@ void MainWindow::setupMenuBar()
     
     m_clearHistoryAction = m_viewMenu->addAction(tr("&Clear All History"));
     connect(m_clearHistoryAction, &QAction::triggered, this, &MainWindow::onClearAllHistory);
+    
+    m_viewMenu->addSeparator();
+    
+    m_toggleConsoleAction = m_viewMenu->addAction(tr("&Console"));
+    m_toggleConsoleAction->setCheckable(true);
+    m_toggleConsoleAction->setChecked(false);
+    m_toggleConsoleAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_QuoteLeft));
+    connect(m_toggleConsoleAction, &QAction::triggered, this, &MainWindow::onToggleConsole);
     
     // Help menu
     m_helpMenu = menuBar()->addMenu(tr("&Help"));
@@ -338,8 +410,20 @@ void MainWindow::setupConnections()
     // Chat widget connections
     connect(m_chatWidget, &ChatWidget::sendDataRequested,
             this, &MainWindow::onSendDataRequested);
+    connect(m_chatWidget, &ChatWidget::sendGroupDataRequested,
+            this, &MainWindow::onSendGroupDataRequested);
     connect(m_chatWidget, &ChatWidget::clearHistoryRequested,
             this, &MainWindow::onClearHistoryRequested);
+    connect(m_chatWidget, &ChatWidget::portSettingsRequested,
+            this, &MainWindow::onPortSettingsRequested);
+    connect(m_chatWidget, &ChatWidget::groupSettingsRequested,
+            this, &MainWindow::onGroupSettingsRequested);
+    connect(m_chatWidget, &ChatWidget::connectPortRequested,
+            this, &MainWindow::onConnectRequested);
+    connect(m_chatWidget, &ChatWidget::disconnectPortRequested,
+            this, &MainWindow::onDisconnectRequested);
+    connect(m_chatWidget, &ChatWidget::groupForwardingToggled,
+            this, &MainWindow::onGroupForwardingToggled);
     
     // Port manager connections
     connect(m_portManager, &SerialPortManager::userStatusChanged,
@@ -390,8 +474,135 @@ void MainWindow::createChatGroup(const ChatGroupInfo& info)
     // Connect group signals
     connect(group, &ChatGroup::messageReceived, this, [this, group](const Message& message) {
         m_messageManager->addGroupMessage(group->id(), message);
-        if (m_chatWidget->isGroupMode() && m_chatWidget->currentPort().isEmpty()) {
-            // Could track current group ID and update
+        if (m_chatWidget->isGroupMode() && m_chatWidget->groupId() == group->id()) {
+            m_chatWidget->addMessage(message);
         }
     });
+}
+
+ChatGroup* MainWindow::getChatGroup(const QString& groupId)
+{
+    return m_chatGroups.value(groupId, nullptr);
+}
+
+void MainWindow::setupConsoleDock()
+{
+    m_consoleDock = new QDockWidget(tr("Console"), this);
+    m_consoleDock->setAllowedAreas(Qt::BottomDockWidgetArea | Qt::TopDockWidgetArea);
+    
+    m_consoleOutput = new QTextEdit(m_consoleDock);
+    m_consoleOutput->setReadOnly(true);
+    m_consoleOutput->setStyleSheet("QTextEdit { background-color: #1E1E1E; color: #D4D4D4; font-family: 'Consolas', 'Courier New', monospace; font-size: 12px; }");
+    m_consoleOutput->setMinimumHeight(100);
+    m_consoleOutput->setMaximumHeight(200);
+    
+    m_consoleDock->setWidget(m_consoleOutput);
+    addDockWidget(Qt::BottomDockWidgetArea, m_consoleDock);
+    m_consoleDock->hide();
+}
+
+void MainWindow::onConnectAll()
+{
+    int connected = 0;
+    int failed = 0;
+    
+    QList<SerialPortInfo> friends = m_portManager->friendList();
+    for (const SerialPortInfo& info : friends) {
+        if (!info.isOnline()) {
+            if (m_portManager->connectPort(info.portName())) {
+                connected++;
+                logMessage(tr("Connected to %1").arg(info.portName()));
+            } else {
+                failed++;
+                logWarning(tr("Failed to connect to %1").arg(info.portName()));
+            }
+        }
+    }
+    
+    m_friendListWidget->refreshList();
+    logMessage(tr("Connect All completed: %1 connected, %2 failed").arg(connected).arg(failed));
+}
+
+void MainWindow::onToggleConsole()
+{
+    m_consoleDock->setVisible(!m_consoleDock->isVisible());
+    m_toggleConsoleAction->setChecked(m_consoleDock->isVisible());
+}
+
+void MainWindow::logMessage(const QString& message)
+{
+    QString timestamp = QDateTime::currentDateTime().toString("hh:mm:ss");
+    m_consoleOutput->append(QString("<span style='color: #6A9955;'>[%1]</span> %2").arg(timestamp, message));
+}
+
+void MainWindow::logError(const QString& message)
+{
+    QString timestamp = QDateTime::currentDateTime().toString("hh:mm:ss");
+    m_consoleOutput->append(QString("<span style='color: #F14C4C;'>[%1] ERROR:</span> <span style='color: #F14C4C;'>%2</span>").arg(timestamp, message));
+}
+
+void MainWindow::logWarning(const QString& message)
+{
+    QString timestamp = QDateTime::currentDateTime().toString("hh:mm:ss");
+    m_consoleOutput->append(QString("<span style='color: #CCA700;'>[%1] WARNING:</span> %2").arg(timestamp, message));
+}
+
+void MainWindow::onGroupSettingsRequested(const QString& groupId)
+{
+    ChatGroup* group = getChatGroup(groupId);
+    if (!group) {
+        return;
+    }
+    
+    ChatGroupDialog dialog(group->info(), m_portManager, this);
+    if (dialog.exec() == QDialog::Accepted) {
+        group->setInfo(dialog.groupInfo());
+        m_friendListWidget->updateGroup(dialog.groupInfo());
+        saveData();
+        logMessage(tr("Group '%1' settings updated").arg(group->name()));
+    }
+}
+
+void MainWindow::onGroupForwardingToggled(const QString& groupId, bool enabled)
+{
+    ChatGroup* group = getChatGroup(groupId);
+    if (group) {
+        group->setForwardingEnabled(enabled);
+        saveData();
+        logMessage(tr("Group '%1' forwarding %2").arg(group->name(), enabled ? tr("enabled") : tr("disabled")));
+    }
+}
+
+void MainWindow::onSendGroupDataRequested(const QString& groupId, const QByteArray& data, const QStringList& targetPorts)
+{
+    ChatGroup* group = getChatGroup(groupId);
+    if (!group) {
+        logError(tr("Group not found: %1").arg(groupId));
+        return;
+    }
+    
+    for (const QString& portName : targetPorts) {
+        SerialPortUser* user = m_portManager->getUser(portName);
+        if (!user) {
+            user = m_portManager->createUser(portName);
+        }
+        
+        if (!user->isOnline()) {
+            if (!user->connect()) {
+                logWarning(tr("Failed to connect to %1: %2").arg(portName, user->errorString()));
+                continue;
+            }
+            m_friendListWidget->refreshList();
+        }
+        
+        if (user->sendData(data)) {
+            Message msg(portName, data, MessageDirection::Sent);
+            m_messageManager->addGroupMessage(groupId, msg);
+            if (m_chatWidget->isGroupMode() && m_chatWidget->groupId() == groupId) {
+                m_chatWidget->addMessage(msg);
+            }
+        } else {
+            logWarning(tr("Failed to send to %1: %2").arg(portName, user->errorString()));
+        }
+    }
 }

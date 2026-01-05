@@ -8,5 +8,6 @@
         <file>icons/settings.png</file>
         <file>icons/refresh.png</file>
         <file>icons/add.png</file>
+        <file>icons/app.svg</file>
     </qresource>
 </RCC>

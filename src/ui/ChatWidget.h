@@ -11,11 +11,13 @@
 #include <QCheckBox>
 #include <QLabel>
 #include <QList>
+#include <QListWidget>
 #include "Message.h"
 #include "ChatBubble.h"
 
 class SerialPortManager;
 class MessageManager;
+class ChatGroup;
 
 /**
  * @brief Chat widget for serial port communication
@@ -33,6 +35,7 @@ public:
     // Set managers
     void setPortManager(SerialPortManager* manager);
     void setMessageManager(MessageManager* manager);
+    void setCurrentGroup(ChatGroup* group);
     
     // Current port
     void setCurrentPort(const QString& portName);
@@ -42,6 +45,7 @@ public:
     void setGroupMode(bool enabled);
     void setGroupId(const QString& groupId);
     bool isGroupMode() const { return m_isGroupMode; }
+    QString groupId() const { return m_groupId; }
     
     // Display settings
     void setDisplayFormat(MessageFormat format);
@@ -54,7 +58,13 @@ public:
 
 signals:
     void sendDataRequested(const QString& portName, const QByteArray& data);
+    void sendGroupDataRequested(const QString& groupId, const QByteArray& data, const QStringList& targetPorts);
     void clearHistoryRequested(const QString& portName);
+    void portSettingsRequested(const QString& portName);
+    void groupSettingsRequested(const QString& groupId);
+    void connectPortRequested(const QString& portName);
+    void disconnectPortRequested(const QString& portName);
+    void groupForwardingToggled(const QString& groupId, bool enabled);
 
 public slots:
     void onMessageReceived(const Message& message);
@@ -64,11 +74,15 @@ private slots:
     void onClearClicked();
     void onFormatChanged(int index);
     void onHexModeChanged(bool checked);
+    void onTitleClicked();
+    void onStatusClicked();
+    void onMembersButtonClicked();
 
 private:
     // Managers
     SerialPortManager* m_portManager;
     MessageManager* m_messageManager;
+    ChatGroup* m_currentGroup;
     
     // Current state
     QString m_currentPort;
@@ -83,8 +97,9 @@ private:
     // Header
     QWidget* m_headerWidget;
     QHBoxLayout* m_headerLayout;
-    QLabel* m_titleLabel;
-    QLabel* m_statusLabel;
+    QPushButton* m_titleButton;
+    QPushButton* m_statusButton;
+    QPushButton* m_membersButton;
     QComboBox* m_formatCombo;
     
     // Chat area
@@ -103,13 +118,23 @@ private:
     QPushButton* m_clearButton;
     QPushButton* m_sendButton;
     
+    // Group target selection
+    QWidget* m_targetWidget;
+    QHBoxLayout* m_targetLayout;
+    QLabel* m_targetLabel;
+    QListWidget* m_targetList;
+    QCheckBox* m_sendToAllCheckBox;
+    
     void setupUi();
     void setupHeader();
     void setupChatArea();
     void setupInputArea();
+    void setupTargetSelection();
     void scrollToBottom();
     void updateHeader();
+    void updateTargetList();
     QByteArray prepareData(const QString& text);
+    QStringList getSelectedTargets();
 };
 
 #endif // CHAT_WIDGET_H

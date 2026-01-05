@@ -9,6 +9,7 @@
 #include <QLineEdit>
 #include <QList>
 #include <QMap>
+#include <QEvent>
 #include "SerialPortInfo.h"
 #include "ChatGroupInfo.h"
 #include "FriendListItem.h"
@@ -58,6 +59,9 @@ signals:
     void portRemarkRequested(const QString& portName);
     void connectRequested(const QString& portName);
     void disconnectRequested(const QString& portName);
+
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override;
 
 private slots:
     void onItemClicked(const QString& portName);

@@ -1,4 +1,5 @@
 #include <QApplication>
+#include <QIcon>
 #include "MainWindow.h"
 
 int main(int argc, char *argv[])
@@ -7,9 +8,12 @@ int main(int argc, char *argv[])
     
     // Set application info
     app.setApplicationName("Serial Chat");
-    app.setApplicationVersion("1.0.0");
+    app.setApplicationVersion(APP_VERSION);
     app.setOrganizationName("SerialChat");
     app.setOrganizationDomain("serialchat.app");
+    
+    // Set application icon
+    app.setWindowIcon(QIcon(":/icons/app.svg"));
     
     // Set application style
     app.setStyle("Fusion");

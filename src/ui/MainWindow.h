@@ -11,6 +11,8 @@
 #include <QLabel>
 #include <QTimer>
 #include <QMap>
+#include <QDockWidget>
+#include <QTextEdit>
 
 #include "FriendListWidget.h"
 #include "ChatWidget.h"
@@ -18,6 +20,12 @@
 #include "MessageManager.h"
 #include "DataPersistence.h"
 #include "ChatGroup.h"
+
+// Version info
+#define APP_VERSION "1.0.0"
+#define APP_VERSION_MAJOR 1
+#define APP_VERSION_MINOR 0
+#define APP_VERSION_PATCH 0
 
 /**
  * @brief Main application window
@@ -28,6 +36,11 @@ class MainWindow : public QMainWindow {
 public:
     explicit MainWindow(QWidget* parent = nullptr);
     ~MainWindow() override;
+    
+    // Console logging
+    void logMessage(const QString& message);
+    void logError(const QString& message);
+    void logWarning(const QString& message);
 
 protected:
     void closeEvent(QCloseEvent* event) override;
@@ -44,6 +57,9 @@ private slots:
     
     // Group actions
     void onCreateGroupRequested();
+    void onGroupSettingsRequested(const QString& groupId);
+    void onGroupForwardingToggled(const QString& groupId, bool enabled);
+    void onSendGroupDataRequested(const QString& groupId, const QByteArray& data, const QStringList& targetPorts);
     
     // Message actions
     void onSendDataRequested(const QString& portName, const QByteArray& data);
@@ -55,9 +71,11 @@ private slots:
     
     // Menu actions
     void onRefreshPorts();
+    void onConnectAll();
     void onDisconnectAll();
     void onClearAllHistory();
     void onExportHistory();
+    void onToggleConsole();
     void onAbout();
     
     // Status bar update
@@ -78,6 +96,10 @@ private:
     FriendListWidget* m_friendListWidget;
     ChatWidget* m_chatWidget;
     
+    // Console dock
+    QDockWidget* m_consoleDock;
+    QTextEdit* m_consoleOutput;
+    
     // Menu
     QMenu* m_fileMenu;
     QMenu* m_portMenu;
@@ -86,10 +108,12 @@ private:
     
     QAction* m_refreshAction;
     QAction* m_addPortAction;
+    QAction* m_connectAllAction;
     QAction* m_disconnectAllAction;
     QAction* m_exitAction;
     QAction* m_clearHistoryAction;
     QAction* m_exportHistoryAction;
+    QAction* m_toggleConsoleAction;
     QAction* m_aboutAction;
     
     // Status bar
@@ -100,10 +124,12 @@ private:
     void setupUi();
     void setupMenuBar();
     void setupStatusBar();
+    void setupConsoleDock();
     void setupConnections();
     void loadData();
     void saveData();
     void createChatGroup(const ChatGroupInfo& info);
+    ChatGroup* getChatGroup(const QString& groupId);
 };
 
 #endif // MAIN_WINDOW_H
