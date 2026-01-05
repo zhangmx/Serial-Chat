@@ -65,6 +65,11 @@ SerialPortUser *SerialPortManager::createUser(const SerialPortInfo &info) {
 
 bool SerialPortManager::removeUser(const QString &portName) {
     if (!m_users.contains(portName)) {
+        // Still remove from friend list even if user doesn't exist
+        if (m_friendList.contains(portName)) {
+            m_friendList.remove(portName);
+            emit friendListChanged();
+        }
         return false;
     }
 
@@ -72,11 +77,31 @@ bool SerialPortManager::removeUser(const QString &portName) {
     user->disconnect();
     delete user;
 
+    // Also remove from friend list
+    if (m_friendList.contains(portName)) {
+        m_friendList.remove(portName);
+        emit friendListChanged();
+    }
+
     emit userRemoved(portName);
     return true;
 }
 
-QList<SerialPortInfo> SerialPortManager::friendList() const { return m_friendList.values(); }
+QList<SerialPortInfo> SerialPortManager::friendList() const {
+    QList<SerialPortInfo> result;
+    for (const auto &info : m_friendList) {
+        SerialPortInfo updatedInfo = info;
+        // Update status from live user object
+        if (m_users.contains(info.portName())) {
+            SerialPortUser *user = m_users.value(info.portName());
+            updatedInfo.setStatus(user->status());
+        } else {
+            updatedInfo.setStatus(PortStatus::Offline);
+        }
+        result.append(updatedInfo);
+    }
+    return result;
+}
 
 QList<SerialPortInfo> SerialPortManager::onlineFriends() const {
     QList<SerialPortInfo> online;

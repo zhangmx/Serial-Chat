@@ -159,8 +159,16 @@ void MainWindow::onUserMessageReceived(const QString &portName, const Message &m
     // Add to message manager
     m_messageManager->addMessage(message);
 
-    // Update chat widget if this is the current port
-    if (m_chatWidget->currentPort() == portName) {
+    // Update chat widget based on current mode
+    if (m_chatWidget->isGroupMode()) {
+        // In group mode, only show messages from group members
+        QString currentGroupId = m_chatWidget->groupId();
+        ChatGroup *group = getChatGroup(currentGroupId);
+        if (group && group->hasMember(portName)) {
+            m_chatWidget->addMessage(message);
+        }
+    } else if (m_chatWidget->currentPort() == portName) {
+        // In single port mode
         m_chatWidget->addMessage(message);
     } else {
         // Increment unread count for non-active ports
@@ -171,7 +179,7 @@ void MainWindow::onUserMessageReceived(const QString &portName, const Message &m
     QString preview = message.data().left(50);
     m_friendListWidget->updateLastMessage(portName, preview);
 
-    // Forward to chat groups
+    // Forward to chat groups (for storage only)
     for (ChatGroup *group : m_chatGroups) {
         if (group->hasMember(portName)) {
             m_messageManager->addGroupMessage(group->id(), message);
@@ -183,8 +191,16 @@ void MainWindow::onUserMessageSent(const QString &portName, const Message &messa
     // Add to message manager
     m_messageManager->addMessage(message);
 
-    // Update chat widget if this is the current port
-    if (m_chatWidget->currentPort() == portName) {
+    // Update chat widget based on current mode
+    if (m_chatWidget->isGroupMode()) {
+        // In group mode, only show if this port is a member
+        QString currentGroupId = m_chatWidget->groupId();
+        ChatGroup *group = getChatGroup(currentGroupId);
+        if (group && group->hasMember(portName)) {
+            m_chatWidget->addMessage(message);
+        }
+    } else if (m_chatWidget->currentPort() == portName) {
+        // In single port mode
         m_chatWidget->addMessage(message);
     }
 
@@ -441,6 +457,10 @@ void MainWindow::setupConnections() {
 
     // Delete port handling
     connect(m_friendListWidget, &FriendListWidget::deletePortRequested, this, &MainWindow::onDeletePortRequested);
+
+    // Group signals from friend list
+    connect(m_friendListWidget, &FriendListWidget::deleteGroupRequested, this, &MainWindow::onDeleteGroupRequested);
+    connect(m_friendListWidget, &FriendListWidget::groupSettingsRequested, this, &MainWindow::onGroupSettingsRequested);
 }
 
 void MainWindow::loadData() {
@@ -570,6 +590,40 @@ void MainWindow::onGroupForwardingToggled(const QString &groupId, bool enabled) 
         group->setForwardingEnabled(enabled);
         saveData();
         logMessage(tr("Group '%1' forwarding %2").arg(group->name(), enabled ? tr("enabled") : tr("disabled")));
+    }
+}
+
+void MainWindow::onDeleteGroupRequested(const QString &groupId) {
+    ChatGroup *group = getChatGroup(groupId);
+    if (!group) {
+        return;
+    }
+
+    QMessageBox::StandardButton reply = QMessageBox::question(
+        this, tr("Delete Group"), tr("Are you sure you want to delete group '%1'?").arg(group->name()),
+        QMessageBox::Yes | QMessageBox::No);
+
+    if (reply == QMessageBox::Yes) {
+        QString groupName = group->name();
+
+        // Remove from UI
+        m_friendListWidget->removeGroup(groupId);
+
+        // Clear chat if this was selected
+        if (m_chatWidget->isGroupMode() && m_chatWidget->groupId() == groupId) {
+            m_chatWidget->clearMessages();
+            m_chatWidget->setCurrentPort(QString());
+        }
+
+        // Remove from internal map
+        m_chatGroups.remove(groupId);
+        delete group;
+
+        // Clear group message history
+        m_messageManager->clearGroupMessages(groupId);
+
+        logMessage(tr("Deleted group '%1'").arg(groupName));
+        saveData();
     }
 }
 

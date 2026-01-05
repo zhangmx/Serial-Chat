@@ -60,6 +60,7 @@ class MainWindow : public QMainWindow {
     void onGroupSettingsRequested(const QString &groupId);
     void onGroupForwardingToggled(const QString &groupId, bool enabled);
     void onSendGroupDataRequested(const QString &groupId, const QByteArray &data, const QStringList &targetPorts);
+    void onDeleteGroupRequested(const QString &groupId);
 
     // Message actions
     void onSendDataRequested(const QString &portName, const QByteArray &data);

@@ -9,12 +9,18 @@ FriendListWidget::~FriendListWidget() {}
 
 bool FriendListWidget::eventFilter(QObject *watched, QEvent *event) {
     if (event->type() == QEvent::MouseButtonPress) {
+        QMouseEvent *mouseEvent = static_cast<QMouseEvent *>(event);
         QWidget *widget = qobject_cast<QWidget *>(watched);
         if (widget) {
             QString groupId = widget->property("groupId").toString();
             if (!groupId.isEmpty()) {
-                selectGroup(groupId);
-                return true;
+                if (mouseEvent->button() == Qt::RightButton) {
+                    showGroupContextMenu(groupId, mouseEvent->globalPos());
+                    return true;
+                } else if (mouseEvent->button() == Qt::LeftButton) {
+                    selectGroup(groupId);
+                    return true;
+                }
             }
         }
     }
@@ -345,10 +351,61 @@ FriendListItem *FriendListWidget::createFriendItem(const SerialPortInfo &info) {
     FriendListItem *item = new FriendListItem(info, this);
     connect(item, &FriendListItem::clicked, this, &FriendListWidget::onItemClicked);
     connect(item, &FriendListItem::deleteRequested, this, &FriendListWidget::onDeleteRequested);
+    connect(item, &FriendListItem::contextMenuRequested, this, &FriendListWidget::showPortContextMenu);
     return item;
 }
 
 void FriendListWidget::onDeleteRequested(const QString &portName) { emit deletePortRequested(portName); }
+
+void FriendListWidget::showPortContextMenu(const QString &portName, const QPoint &pos) {
+    QMenu menu(this);
+
+    // Check if port is online
+    bool isOnline = false;
+    if (m_portManager) {
+        SerialPortUser *user = m_portManager->getUser(portName);
+        isOnline = user && user->isOnline();
+    }
+
+    if (isOnline) {
+        QAction *disconnectAction = menu.addAction(QIcon(":/icons/disconnect.png"), tr("Disconnect"));
+        connect(disconnectAction, &QAction::triggered, this,
+                [this, portName]() { emit disconnectRequested(portName); });
+    } else {
+        QAction *connectAction = menu.addAction(QIcon(":/icons/connect.png"), tr("Connect"));
+        connect(connectAction, &QAction::triggered, this, [this, portName]() { emit connectRequested(portName); });
+    }
+
+    menu.addSeparator();
+
+    QAction *settingsAction = menu.addAction(QIcon(":/icons/settings.png"), tr("Settings..."));
+    connect(settingsAction, &QAction::triggered, this, [this, portName]() { emit portSettingsRequested(portName); });
+
+    QAction *remarkAction = menu.addAction(tr("Set Remark..."));
+    connect(remarkAction, &QAction::triggered, this, [this, portName]() { emit portRemarkRequested(portName); });
+
+    menu.addSeparator();
+
+    QAction *deleteAction = menu.addAction(QIcon(":/icons/delete.png"), tr("Delete"));
+    deleteAction->setShortcut(QKeySequence::Delete);
+    connect(deleteAction, &QAction::triggered, this, [this, portName]() { emit deletePortRequested(portName); });
+
+    menu.exec(pos);
+}
+
+void FriendListWidget::showGroupContextMenu(const QString &groupId, const QPoint &pos) {
+    QMenu menu(this);
+
+    QAction *settingsAction = menu.addAction(QIcon(":/icons/settings.png"), tr("Group Settings..."));
+    connect(settingsAction, &QAction::triggered, this, [this, groupId]() { emit groupSettingsRequested(groupId); });
+
+    menu.addSeparator();
+
+    QAction *deleteAction = menu.addAction(QIcon(":/icons/delete.png"), tr("Delete Group"));
+    connect(deleteAction, &QAction::triggered, this, [this, groupId]() { emit deleteGroupRequested(groupId); });
+
+    menu.exec(pos);
+}
 
 void FriendListWidget::updateLastMessage(const QString &portName, const QString &message) {
     if (m_friendItems.contains(portName)) {

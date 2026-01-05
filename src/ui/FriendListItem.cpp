@@ -1,5 +1,6 @@
 #include "FriendListItem.h"
 #include "TimeUtils.h"
+#include <QContextMenuEvent>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QResizeEvent>
@@ -280,4 +281,9 @@ void FriendListItem::resizeEvent(QResizeEvent *event) {
     QWidget::resizeEvent(event);
     m_contentWidget->setFixedWidth(width());
     m_deleteButton->move(width() - 80, 0);
+}
+
+void FriendListItem::contextMenuEvent(QContextMenuEvent *event) {
+    emit contextMenuRequested(m_info.portName(), event->globalPos());
+    event->accept();
 }

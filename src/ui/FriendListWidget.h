@@ -9,6 +9,7 @@
 #include <QLineEdit>
 #include <QList>
 #include <QMap>
+#include <QMenu>
 #include <QPushButton>
 #include <QScrollArea>
 #include <QVBoxLayout>
@@ -60,6 +61,8 @@ class FriendListWidget : public QWidget {
     void connectRequested(const QString &portName);
     void disconnectRequested(const QString &portName);
     void deletePortRequested(const QString &portName);
+    void deleteGroupRequested(const QString &groupId);
+    void groupSettingsRequested(const QString &groupId);
 
   public slots:
     void updateLastMessage(const QString &portName, const QString &message);
@@ -75,6 +78,8 @@ class FriendListWidget : public QWidget {
     void onAddButtonClicked();
     void onGroupButtonClicked();
     void onDeleteRequested(const QString &portName);
+    void showPortContextMenu(const QString &portName, const QPoint &pos);
+    void showGroupContextMenu(const QString &groupId, const QPoint &pos);
 
   private:
     SerialPortManager *m_portManager;

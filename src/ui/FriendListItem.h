@@ -48,6 +48,7 @@ class FriendListItem : public QWidget {
     void disconnectRequested(const QString &portName);
     void settingsRequested(const QString &portName);
     void remarkRequested(const QString &portName);
+    void contextMenuRequested(const QString &portName, const QPoint &globalPos);
 
   protected:
     void mousePressEvent(QMouseEvent *event) override;
@@ -56,6 +57,7 @@ class FriendListItem : public QWidget {
     void enterEvent(QEvent *event) override;
     void leaveEvent(QEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;
+    void contextMenuEvent(QContextMenuEvent *event) override;
 
   private slots:
     void onDeleteClicked();
