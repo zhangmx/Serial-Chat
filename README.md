@@ -12,6 +12,8 @@
 
 Serial Chat is an innovative serial port communication tool that transforms the traditional serial debugging experience into a chat-like interface. Each serial port is treated as a "user" that can send and receive messages, just like in a messaging application.
 
+![screenshot](docs/images/ScreenShot_2026-01-05_173116_322.png)
+
 ## Features
 
 ### 🔌 Serial Port as Users
